@@ -1,0 +1,11 @@
+{
+    "files.exclude": {
+        ".vscode/": true,
+        ".projectile": true,
+        "build/": true,
+        "build.bat": true,
+        "run_with_mednafen.bat": true,
+        "*.iso": true,
+        "*.cue": true,
+    }
+}

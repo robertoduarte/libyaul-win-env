@@ -5,7 +5,7 @@ if not exist *.cue (
 ) else (
     @REM Finding first cue file and running it on mednafen
     FOR %%F IN (*.cue) DO (
-        "..\..\mednafen\mednafen.exe" %%F
+        "..\emulators\mednafen\mednafen.exe" %%F
         exit /b
     )
 )
