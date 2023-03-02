@@ -5,6 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/../libyaul/libyaul/lib/lib",
                 "${workspaceFolder}/../libyaul/libyaul/.",
+                "${workspaceFolder}/../libyaul/libyaul/bup",
                 "${workspaceFolder}/../libyaul/libyaul/common",
                 "${workspaceFolder}/../libyaul/libyaul/kernel",
                 "${workspaceFolder}/../libyaul/libyaul/kernel/dbgio",
