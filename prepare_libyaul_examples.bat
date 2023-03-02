@@ -5,13 +5,12 @@ SET "ROOT_DIR=%ROOT_DIR:\=/%"
 SET MSYS_BIN=%ROOT_DIR%msys_trimmed/usr/bin
 SET PATH=%MSYS_BIN%;%PATH%
 
-SET BACKUP_DIR=%ROOT_DIR%libyaul-examples_%date:/=-%_%time::=-%
-
 set YAUL_EXAMPLES_COMMIT=fa0cf46d7ea77d1d40246c0465e26f89e3bd0851
 
+echo %ROOT_DIR%libyaul-examples_%date:/=-%_%time::=-%
+
 IF EXIST libyaul-examples (
-    mkdir %BACKUP_DIR%
-    mv -f libyaul-examples %BACKUP_DIR%
+    mv %ROOT_DIR%libyaul-examples %ROOT_DIR%libyaul-examples_%date:/=-%_%time::=-%
 )
 
 git clone https://github.com/ijacquez/libyaul-examples.git
@@ -33,6 +32,9 @@ pacman -S --noconfirm yaul-emulator-yabause
 pacman -S --noconfirm yaul-emulator-mednafen
 
 cp -rf %ROOT_DIR%msys_trimmed/opt/* .
+
+@REM Copy libwinpthread-1.dll so that intellisense works on vscode
+cp %ROOT_DIR%msys_trimmed/usr/bin/libwinpthread-1.dll tool-chains/sh2eb-elf/bin/
 
 pacman -R --noconfirm yaul-tool-chain-git
 pacman -R --noconfirm yaul-emulator-yabause

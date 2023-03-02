@@ -3,6 +3,8 @@
         {
             "name": "Saturn",
             "includePath": [
+                "${workspaceFolder}/../shared/perf",
+                "${workspaceFolder}/../shared/menu",
                 "${workspaceFolder}/../libyaul/libyaul/lib/lib",
                 "${workspaceFolder}/../libyaul/libyaul/.",
                 "${workspaceFolder}/../libyaul/libyaul/bup",
@@ -21,9 +23,9 @@
                 "${workspaceFolder}/../libyaul/libyaul/scu/bus/b/vdp",
                 "${workspaceFolder}/../libyaul/libyaul/scu/bus/cpu",
                 "${workspaceFolder}/../libyaul/libyaul/scu/bus/cpu/smpc",
-                "${workspaceFolder}/../sh2eb-elf/sh2eb-elf/include/yaul"
+                "${workspaceFolder}/../tool-chains/sh2eb-elf/sh2eb-elf/include/yaul"
             ],
-            "compilerPath": "${workspaceFolder}/../sh2eb-elf/bin/sh2eb-elf-gcc-11.2.0.exe",
+            "compilerPath": "${workspaceFolder}/../tool-chains/sh2eb-elf/bin/sh2eb-elf-gcc-11.2.0.exe",
             "cStandard": "c17",
             "cppStandard": "c++23",
             "intelliSenseMode": "linux-gcc-x86",
