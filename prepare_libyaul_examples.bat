@@ -22,7 +22,8 @@ cd libyaul-examples
 git checkout %YAUL_EXAMPLES_COMMIT%
 
 FOR /d %%i IN (*) DO (
-  xcopy /s/e/y "%ROOT_DIR%vscode_template" "%%i"
+    cp -r %ROOT_DIR%vscode_template/.vscode "%%i"
+    cp -r %ROOT_DIR%vscode_template/. "%%i"
 )
 
 SET PATCH_DIR=%ROOT_DIR%patches/libyaul-examples/%YAUL_EXAMPLES_COMMIT%
@@ -39,10 +40,6 @@ cp -rf %ROOT_DIR%msys_trimmed/opt/* .
 
 @REM Copy libwinpthread-1.dll so that intellisense works on vscode
 cp %ROOT_DIR%msys_trimmed/usr/bin/libwinpthread-1.dll tool-chains/sh2eb-elf/bin/
-
-pacman -R --noconfirm yaul-tool-chain-git
-pacman -R --noconfirm yaul-emulator-yabause
-pacman -R --noconfirm yaul-emulator-mednafen
 
 set YAUL_COMMIT=47e2d38f22ada0de55ae8e1ffedfd572ec9090c9
 
