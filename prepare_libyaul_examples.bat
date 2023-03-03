@@ -5,12 +5,16 @@ SET "ROOT_DIR=%ROOT_DIR:\=/%"
 SET MSYS_BIN=%ROOT_DIR%msys_trimmed/usr/bin
 SET PATH=%MSYS_BIN%;%PATH%
 
-set YAUL_EXAMPLES_COMMIT=fa0cf46d7ea77d1d40246c0465e26f89e3bd0851
+SET YAUL_EXAMPLES_COMMIT=fa0cf46d7ea77d1d40246c0465e26f89e3bd0851
 
-echo %ROOT_DIR%libyaul-examples_%date:/=-%_%time::=-%
-
+SET BACKUP_DIR=%ROOT_DIR%libyaul-examples_backup_%date:/=-%%time::=-%
+SET BACKUP_DIR=%BACKUP_DIR: =_%
 IF EXIST libyaul-examples (
-    mv %ROOT_DIR%libyaul-examples %ROOT_DIR%libyaul-examples_%date:/=-%_%time::=-%
+    mv %ROOT_DIR%libyaul-examples %BACKUP_DIR%
+    IF NOT EXIST %BACKUP_DIR% (
+        echo "Failed to backup existing libyaul-examples, check if folder is in use by another process."
+        exit
+    )
 )
 
 git clone https://github.com/ijacquez/libyaul-examples.git
