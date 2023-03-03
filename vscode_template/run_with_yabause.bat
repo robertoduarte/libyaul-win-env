@@ -3,9 +3,9 @@
 if not exist *.cue (
     echo "CUE/ISO missing, please build first."
 ) else (
-    @REM Finding first cue file and running it on mednafen
+    @REM Finding first cue file and running it on yabause
     FOR %%F IN (*.cue) DO (
-        "..\emulators\mednafen\mednafen.exe" %%F
+        "..\emulators\yabause\yabause.exe" -a -i %%F
         exit /b
     )
 )
