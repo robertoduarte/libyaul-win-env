@@ -17,9 +17,11 @@ IF EXIST libyaul-examples (
     )
 )
 
-git clone https://github.com/ijacquez/libyaul-examples.git
+powershell -command "Invoke-WebRequest -URI https://github.com/ijacquez/libyaul-examples/archive/%YAUL_EXAMPLES_COMMIT%.zip -OutFile %YAUL_EXAMPLES_COMMIT%.zip"
+powershell -command "Expand-Archive %YAUL_EXAMPLES_COMMIT%.zip -DestinationPath ."
+rm -f %YAUL_EXAMPLES_COMMIT%.zip
+powershell -command "mv libyaul-examples-%YAUL_EXAMPLES_COMMIT% libyaul-examples"
 cd libyaul-examples
-git checkout %YAUL_EXAMPLES_COMMIT%
 
 FOR /d %%i IN (*) DO (
     cp -r %ROOT_DIR%vscode_template/.vscode "%%i"
@@ -43,9 +45,11 @@ cp %ROOT_DIR%msys_trimmed/usr/bin/libwinpthread-1.dll tool-chains/sh2eb-elf/bin/
 
 set YAUL_COMMIT=47e2d38f22ada0de55ae8e1ffedfd572ec9090c9
 
-git clone https://github.com/ijacquez/libyaul.git
+powershell -command "Invoke-WebRequest -URI https://github.com/ijacquez/libyaul/archive/%YAUL_COMMIT%.zip -OutFile %YAUL_COMMIT%.zip"
+powershell -command "Expand-Archive %YAUL_COMMIT%.zip -DestinationPath ."
+rm -f %YAUL_COMMIT%.zip
+powershell -command "mv libyaul-%YAUL_COMMIT% libyaul"
 cd libyaul
-git checkout %YAUL_COMMIT%
 
 SET PATCH_DIR=%ROOT_DIR%patches/libyaul/%YAUL_COMMIT%
 IF EXIST %PATCH_DIR% (
