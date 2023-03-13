@@ -24,8 +24,8 @@ powershell -command "mv libyaul-examples-%YAUL_EXAMPLES_COMMIT% libyaul-examples
 cd libyaul-examples
 
 FOR /d %%i IN (*) DO (
-    cp -r %ROOT_DIR%vscode_template/.vscode "%%i"
-    cp -r %ROOT_DIR%vscode_template/. "%%i"
+    cp -r %ROOT_DIR%project_template/.vscode "%%i"
+    cp -r %ROOT_DIR%project_template/. "%%i"
 )
 
 SET PATCH_DIR=%ROOT_DIR%patches/libyaul-examples/%YAUL_EXAMPLES_COMMIT%
@@ -33,17 +33,22 @@ IF EXIST %PATCH_DIR% (
     cp -rf %PATCH_DIR%/* .
 )
 
-pacman -Syy
-pacman -S --noconfirm yaul-tool-chain-git
-pacman -S --noconfirm yaul-emulator-yabause
-pacman -S --noconfirm yaul-emulator-mednafen
-
-cp -rf %ROOT_DIR%msys_trimmed/opt/* .
+powershell -command "Invoke-WebRequest -URI http://packages.yaul.org/mingw-w64/x86_64/yaul-tool-chain-git-r132.00b3688-1-x86_64.pkg.tar.zst -OutFile yaul-tool-chain.tar.zst"
+zstd -d yaul-tool-chain.tar.zst
+tar --strip-components=1 -xf yaul-tool-chain.tar
+powershell -command "Invoke-WebRequest -URI http://packages.yaul.org/mingw-w64/x86_64/yaul-emulator-mednafen-1.26.1-1-x86_64.pkg.tar.zst -OutFile yaul-emulator-mednafen.tar.zst"
+zstd -d yaul-emulator-mednafen.tar.zst
+tar --strip-components=1 -xf yaul-emulator-mednafen.tar
+powershell -command "Invoke-WebRequest -URI http://packages.yaul.org/mingw-w64/x86_64/yaul-emulator-yabause-0.9.15-1-x86_64.pkg.tar.zst -OutFile yaul-emulator-yabause.tar.zst"
+zstd -d yaul-emulator-yabause.tar.zst
+tar --strip-components=1 -xf yaul-emulator-yabause.tar
+rm -f *.tar
 
 @REM Copy libwinpthread-1.dll so that intellisense works on vscode
 cp %ROOT_DIR%msys_trimmed/usr/bin/libwinpthread-1.dll tool-chains/sh2eb-elf/bin/
 
 set YAUL_COMMIT=47e2d38f22ada0de55ae8e1ffedfd572ec9090c9
+
 
 powershell -command "Invoke-WebRequest -URI https://github.com/ijacquez/libyaul/archive/%YAUL_COMMIT%.zip -OutFile %YAUL_COMMIT%.zip"
 powershell -command "Expand-Archive %YAUL_COMMIT%.zip -DestinationPath ."
