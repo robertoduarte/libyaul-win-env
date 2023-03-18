@@ -5,7 +5,7 @@ if not exist *.cue (
 ) else (
     @REM Finding first cue file and running it on yabause
     FOR %%F IN (*.cue) DO (
-        "..\..\emulators\yabause\yabause.exe" -a -i %%F
+        "%YAUL_ROOT%\emulators\yabause\yabause.exe" -a -i %%F
         exit /b
     )
 )

@@ -108,6 +108,9 @@ Get-Component "https://github.com/ijacquez/libyaul-examples/archive/fa0cf46d7ea7
 
 Get-ChildItem -Filter "libyaul-examples-*" -Path $destinationFolder  | Rename-Item -NewName "libyaul-examples"
 
+
+[System.Environment]::SetEnvironmentVariable('YAUL_ROOT',$destinationFolder,[System.EnvironmentVariableTarget]::User)
+
 foreach ($example in $(Get-ChildItem -Directory -Path "$destinationFolder/libyaul-examples")) { 
     Copy-Item -Recurse -Path "project_template/*" -Destination $example.FullName
 }
