@@ -98,7 +98,13 @@ if (-Not $(Test-Path $destinationFolder)) {
     New-Item $destinationFolder -ItemType Directory
 }
 
-Get-Component "base_installation.zip" "$destinationFolder"
+Get-Component "sh2eb-elf.zip" "$destinationFolder"
+
+Get-Component "https://mednafen.github.io/releases/files/mednafen-1.29.0-win64.zip" "$destinationFolder\emulators\mednafen"
+
+Get-Component "https://download.tuxfamily.org/yabause/releases/0.9.15/yabause-0.9.15-win64.zip" "$destinationFolder\emulators"
+
+Get-ChildItem -Filter "yabause-*" -Path "$destinationFolder\emulators"  | Rename-Item -NewName "yabause"
 
 Get-Component "https://github.com/ijacquez/libyaul/archive/47e2d38f22ada0de55ae8e1ffedfd572ec9090c9.zip" "$destinationFolder"
 
