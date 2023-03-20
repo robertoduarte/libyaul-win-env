@@ -1,11 +1,16 @@
-$Env:PATH += ";$pwd/msys64/usr/bin"
-
-$currentPath= "$pwd"
-$currentPath= $currentPath.Replace('\','/') 
+$currentPath = "$pwd"
+$currentPath = $currentPath.Replace('\', '/') 
 
 $tmpPath = "$pwd\temp\"
 if (-Not $(Test-Path $tmpPath)) {
     New-Item $tmpPath -ItemType Directory
+}
+
+Function DownloadFile($address) {
+    $fileName = $address.Substring($address.LastIndexOf("/") + 1)
+    $tmpFilePath = "$tmpPath$fileName"
+    Invoke-WebRequest -URI $address -OutFile $tmpFilePath
+    return $tmpFilePath
 }
 
 Function Get-Component($src, $destPath) {
@@ -13,13 +18,10 @@ Function Get-Component($src, $destPath) {
         New-Item $destPath -ItemType Directory
     }
     if ($src.Contains("http")) { 
-        $fileName = $src.Substring($src.LastIndexOf("/") + 1)
-        $tmpFilePath = "$tmpPath$fileName"
-        Invoke-WebRequest -URI $src -OutFile $tmpFilePath
-        Expand-Archive -Force $tmpFilePath -DestinationPath $destPath
+        $src = DownloadFile($src)
     }
-    else {
-        Expand-Archive -Force $src -DestinationPath $destPath
+    if ($src.Contains(".zip")) {
+        Expand-Archive -Force $src -DestinationPath $destPath 
     }
 }
 
@@ -44,7 +46,7 @@ function Get-Folder {
     [System.Reflection.MethodInfo] $SystemShowMethodInfo = $FileDialogType.GetMethod("Show")
     [System.Reflection.MethodInfo] $SystemUnAdviseMethodInfo = $FileDialogType.GetMethod("Unadvise")
     [System.Type] $VistaDialogEvents = $AssemblyOfWinForm.GetType("System.Windows.Forms.FileDialog+VistaDialogEvents")
-    [System.Object[]] $parameters = ,[System.Windows.Forms.FileDialog]
+    [System.Object[]] $parameters = , [System.Windows.Forms.FileDialog]
     [System.Reflection.ConstructorInfo] $VistaDialogEventsConstructorInfo = $VistaDialogEvents.GetConstructor($DialogFlags, $null, $parameters, $null)
 
     [System.Windows.Forms.OpenFileDialog] $openFileDialog = New-Object -TypeName System.Windows.Forms.OpenFileDialog
@@ -58,26 +60,28 @@ function Get-Folder {
 
     [System.Object[]] $empty = @()
     [System.Object] $fileDialog = $SystemCeateVistaDialogMethodInfo.Invoke($openFileDialog, $empty)
-    [System.Object[]] $fileDialogParam = ,$fileDialog
+    [System.Object[]] $fileDialogParam = , $fileDialog
     $SystemOnBeforeVistaDialogMethodInfo.Invoke($openFileDialog, $fileDialogParam) | Out-Null
     [System.UInt32] $flag = [System.UInt32]$SystemGetOptionsMethodInfo.Invoke($openFileDialog, $empty) + $SystemOsPickFoldersBitFlag;
-    [System.Object[]] $flags = ,$flag
+    [System.Object[]] $flags = , $flag
     $SystemSetOptionsMethodInfo.Invoke($fileDialog, $flags) | Out-Null
-    [System.Object[]] $advParam = ,$openFileDialog
+    [System.Object[]] $advParam = , $openFileDialog
     [System.Object[]] $adviseParametersWithOutputConnectionToken = $VistaDialogEventsConstructorInfo.Invoke($advParam), $AdviseType
     $SystemAdviseMethodInfo.Invoke($fileDialog, $adviseParametersWithOutputConnectionToken) | Out-Null
 
     try {
-        [System.Object[]] $handle = ,[System.IntPtr].Zero
+        [System.Object[]] $handle = , [System.IntPtr].Zero
         [int] $dialogResult = [int]$SystemShowMethodInfo.Invoke($fileDialog, $handle);
 
         if ($dialogResult -eq 0) {
             $result = $openFileDialog.FileName.Trim()
-        } else {
+        }
+        else {
             exit
         }
-    } finally {
-        [System.Object[]] $advFinParam = ,$adviseParametersWithOutputConnectionToken[1]
+    }
+    finally {
+        [System.Object[]] $advFinParam = , $adviseParametersWithOutputConnectionToken[1]
         $SystemUnAdviseMethodInfo.Invoke($fileDialog, $advFinParam) | Out-Null
     }
 
@@ -86,12 +90,12 @@ function Get-Folder {
 
 $destinationFolder = Get-Folder
 
-$destinationFolder+="\yaul"
+$destinationFolder += "\yaul"
 
-while ($(Test-Path $destinationFolder)){
-    [System.Windows.Forms.MessageBox]::Show('Chosen location already has a previous installation plase chose a different folder.','ERROR')
+while ($(Test-Path $destinationFolder)) {
+    [System.Windows.Forms.MessageBox]::Show('Chosen location already has a previous installation plase chose a different folder.', 'ERROR')
     $destinationFolder = Get-Folder
-    $destinationFolder+="\yaul"
+    $destinationFolder += "\yaul"
 }
 
 if (-Not $(Test-Path $destinationFolder)) {
@@ -115,33 +119,46 @@ Get-Component "https://github.com/ijacquez/libyaul-examples/archive/fa0cf46d7ea7
 Get-ChildItem -Filter "libyaul-examples-*" -Path $destinationFolder  | Rename-Item -NewName "libyaul-examples"
 
 
-[System.Environment]::SetEnvironmentVariable('YAUL_ROOT',$destinationFolder,[System.EnvironmentVariableTarget]::User)
+[System.Environment]::SetEnvironmentVariable('YAUL_ROOT', $destinationFolder, [System.EnvironmentVariableTarget]::User)
 
 foreach ($example in $(Get-ChildItem -Directory -Path "$destinationFolder/libyaul-examples")) { 
     Copy-Item -Recurse -Path "project_template/*" -Destination $example.FullName
 }
 
-Copy-Item -Recurse -Path "$currentPath/msys64" -Destination $destinationFolder
-
 Copy-Item -Force -Recurse -Path "$currentPath/libyaul-patch/*" -Destination "$destinationFolder\libyaul"
 
-Remove-Item -Recurse -Force -Path $tmpPath
+Set-Location $destinationFolder
 
-$destinationFolder = $destinationFolder.Replace('\','/')
+$msysInstaller = DownloadFile "https://github.com/msys2/msys2-installer/releases/download/2023-03-18/msys2-base-x86_64-20230318.sfx.exe"
+& "$msysInstaller"
+$Env:PATH += ";$destinationFolder/msys64/usr/bin"
+$Env:PATH += ";$destinationFolder/msys64/mingw64/bin"
 
-$Env:YAUL_INSTALL_ROOT= "$destinationFolder/sh2eb-elf"
-$Env:YAUL_ARCH_SH_PREFIX="sh2eb-elf"
-$Env:YAUL_ARCH_M68K_PREFIX="m68keb-elf"
-$Env:YAUL_BUILD_ROOT="$destinationFolder/libyaul"
-$Env:YAUL_BUILD="build"
-$Env:YAUL_CDB="0"
-$Env:YAUL_OPTION_DEV_CARTRIDGE="0"
-$Env:YAUL_OPTION_MALLOC_IMPL="tlsf"
-$Env:YAUL_OPTION_SPIN_ON_ABORT="1"
-$Env:YAUL_OPTION_BUILD_GDB="0"
-$Env:YAUL_OPTION_BUILD_ASSERT="1"
-$Env:SILENT="1"
-$Env:MAKE_ISO_XORRISO="$destinationFolder/msys64/usr/bin/xorrisofs"
+sh.exe -c "/etc/profile"
+pacman -Syy
+pacman -S --noconfirm xorriso
+pacman -S --noconfirm make
+pacman -S --noconfirm python
+pacman -S --noconfirm mingw-w64-x86_64-libwinpthread
+
+$destinationFolder = $destinationFolder.Replace('\', '/')
+
+$Env:YAUL_INSTALL_ROOT = "$destinationFolder/sh2eb-elf"
+$Env:YAUL_ARCH_SH_PREFIX = "sh2eb-elf"
+$Env:YAUL_ARCH_M68K_PREFIX = "m68keb-elf"
+$Env:YAUL_BUILD_ROOT = "$destinationFolder/libyaul"
+$Env:YAUL_BUILD = "build"
+$Env:YAUL_CDB = "0"
+$Env:YAUL_OPTION_DEV_CARTRIDGE = "0"
+$Env:YAUL_OPTION_MALLOC_IMPL = "tlsf"
+$Env:YAUL_OPTION_SPIN_ON_ABORT = "1"
+$Env:YAUL_OPTION_BUILD_GDB = "0"
+$Env:YAUL_OPTION_BUILD_ASSERT = "1"
+$Env:SILENT = "1"
+$Env:MAKE_ISO_XORRISO = "$destinationFolder/msys64/usr/bin/xorrisofs"
 
 Set-Location "$destinationFolder\libyaul"
+
 make install
+
+Remove-Item -Recurse -Force -Path $tmpPath
