@@ -29,6 +29,10 @@ Function Get-Component($src, $destPath) {
     }
     if ($src.Contains("http")) { 
         $src = DownloadFile($src)
+    }else{
+        $fileName = $src.Substring($src.LastIndexOf("\") + 1)
+        Copy-Item -Force -Path $src -Destination $tmpPath
+        $src = "$tmpPath\$fileName"
     }
     if ($src.Contains(".tar")) {
         7za.exe x $src -aoa -o"$tmpPath"
@@ -114,7 +118,9 @@ if (-Not $(Test-Path $destinationFolder)) {
     New-Item $destinationFolder -ItemType Directory
 }
 
-Get-Component "sh2eb-elf.zip" "$destinationFolder"
+Get-Component "msys64.tar.xz" "$destinationFolder"
+
+Get-Component "sh2eb-elf.tar.xz" "$destinationFolder"
 
 # Official toolchain link, commented because it is not working at the moment
 # Get-Component "http://files.yaul.org/mingw-w64/yaul-tool-chain-mingw-w64-r140.14f6c2c.tar.xz" "$destinationFolder"
@@ -142,19 +148,8 @@ foreach ($example in $(Get-ChildItem -Directory -Path "$destinationFolder/libyau
 
 Copy-Item -Force -Recurse -Path "$currentPath/libyaul-patch/*" -Destination "$destinationFolder\libyaul"
 
-Set-Location $destinationFolder
-
-$msysInstaller = DownloadFile "https://github.com/msys2/msys2-installer/releases/download/2023-03-18/msys2-base-x86_64-20230318.sfx.exe"
-& "$msysInstaller"
 $Env:PATH += ";$destinationFolder/msys64/usr/bin"
 $Env:PATH += ";$destinationFolder/msys64/mingw64/bin"
-
-sh.exe -c "/etc/profile"
-pacman -Syy
-pacman -S --noconfirm xorriso
-pacman -S --noconfirm make
-pacman -S --noconfirm python
-pacman -S --noconfirm mingw-w64-x86_64-libwinpthread
 
 # To fix intelisense on vscode
 Copy-Item -Force "$destinationFolder\msys64\mingw64\bin\libwinpthread-1.dll" -Destination "$destinationFolder\sh2eb-elf\bin"
