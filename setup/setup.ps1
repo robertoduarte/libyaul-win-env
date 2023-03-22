@@ -13,6 +13,8 @@ Function DownloadFile($address) {
     return $tmpFilePath
 }
 
+if (-Not $(Test-Path "7za.exe")) {
+    $7zipPath= "$tmpPath\7-Zip"
     if (-Not $(Test-Path $7zipPath)) {
         New-Item $7zipPath -ItemType Directory
     }
