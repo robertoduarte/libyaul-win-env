@@ -13,6 +13,14 @@ Function DownloadFile($address) {
     return $tmpFilePath
 }
 
+    if (-Not $(Test-Path $7zipPath)) {
+        New-Item $7zipPath -ItemType Directory
+    }
+    $7zipPackage = DownloadFile("http://www.7-zip.org/a/7za920.zip")
+    Expand-Archive -Force $7zipPackage -DestinationPath $7zipPath
+    $Env:PATH += ";$7zipPath"
+}
+
 Function Get-Component($src, $destPath) {
     if (-Not $(Test-Path $destPath)) {
         New-Item $destPath -ItemType Directory
@@ -20,9 +28,11 @@ Function Get-Component($src, $destPath) {
     if ($src.Contains("http")) { 
         $src = DownloadFile($src)
     }
-    if ($src.Contains(".zip")) {
-        Expand-Archive -Force $src -DestinationPath $destPath 
+    if ($src.Contains(".tar")) {
+        7za.exe x $src -aoa -o"$tmpPath"
+        $src= $src.Substring(0, $src.IndexOf(".tar")+4)
     }
+    7za.exe x $src -aoa -o"$destPath"
 }
 
 Add-Type -AssemblyName System.Windows.Forms
@@ -104,6 +114,9 @@ if (-Not $(Test-Path $destinationFolder)) {
 
 Get-Component "sh2eb-elf.zip" "$destinationFolder"
 
+# Official toolchain link, commented because it is not working at the moment
+# Get-Component "http://files.yaul.org/mingw-w64/yaul-tool-chain-mingw-w64-r140.14f6c2c.tar.xz" "$destinationFolder"
+
 Get-Component "https://mednafen.github.io/releases/files/mednafen-1.29.0-win64.zip" "$destinationFolder\emulators\mednafen"
 
 Get-Component "https://download.tuxfamily.org/yabause/releases/0.9.15/yabause-0.9.15-win64.zip" "$destinationFolder\emulators"
@@ -140,6 +153,9 @@ pacman -S --noconfirm xorriso
 pacman -S --noconfirm make
 pacman -S --noconfirm python
 pacman -S --noconfirm mingw-w64-x86_64-libwinpthread
+
+# To fix intelisense on vscode
+Copy-Item -Force "$destinationFolder\msys64\mingw64\bin\libwinpthread-1.dll" -Destination "$destinationFolder\sh2eb-elf\bin"
 
 $destinationFolder = $destinationFolder.Replace('\', '/')
 
