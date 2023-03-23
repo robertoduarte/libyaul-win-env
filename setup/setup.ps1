@@ -137,7 +137,7 @@ $installationPath = Get-Folder
 $installationPath += "\yaul"
 
 while ($(Test-Path $installationPath)) {
-    [System.Windows.Forms.MessageBox]::Show('Chosen location already has a previous installation plase chose a different folder.', 'ERROR')
+    [System.Windows.Forms.MessageBox]::Show('Chosen location already has a previous installation please chose a different folder.', 'ERROR')
     $installationPath = Get-Folder
     $installationPath += "\yaul"
 }
@@ -218,12 +218,12 @@ foreach ($example in $(Get-ChildItem -Directory -Path "$InstallationPath/libyaul
     Copy-Item -Recurse -Path "project_template/*" -Destination $example.FullName
 }
 
-Copy-Item -Force -Recurse -Path "$currentPath/libyaul-patch/*" -Destination "$InstallationPath\libyaul"
+Copy-Item -Force -Recurse -Path "libyaul-patch/*" -Destination "$InstallationPath\libyaul"
 
 $Env:PATH += ";$InstallationPath/msys64/usr/bin"
 $Env:PATH += ";$InstallationPath/msys64/mingw64/bin"
 
-To fix intelisense on vscode
+# To fix intelisense on vscode
 Copy-Item -Force "$InstallationPath\msys64\mingw64\bin\libwinpthread-1.dll" -Destination "$InstallationPath\sh2eb-elf\bin"
 
 $InstallationPath = $InstallationPath.Replace('\', '/')
