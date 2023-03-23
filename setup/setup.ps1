@@ -1,44 +1,72 @@
-$currentPath = "$pwd"
-$currentPath = $currentPath.Replace('\', '/') 
 
-$tmpPath = "$pwd\temp\"
+
+
+$tmpPath = "$pwd\temp"
+Remove-Item -Recurse -Force -Path $tmpPath
 if (-Not $(Test-Path $tmpPath)) {
     New-Item $tmpPath -ItemType Directory
 }
 
-Function DownloadFile($address) {
-    $fileName = $address.Substring($address.LastIndexOf("/") + 1)
-    $tmpFilePath = "$tmpPath$fileName"
-    Invoke-WebRequest -URI $address -OutFile $tmpFilePath
-    return $tmpFilePath
-}
 
-if (-Not $(Test-Path "7za.exe")) {
-    $7zipPath= "$tmpPath\7-Zip"
-    if (-Not $(Test-Path $7zipPath)) {
-        New-Item $7zipPath -ItemType Directory
-    }
-    $7zipPackage = DownloadFile("http://www.7-zip.org/a/7za920.zip")
-    Expand-Archive -Force $7zipPackage -DestinationPath $7zipPath
-    $Env:PATH += ";$7zipPath"
-}
+function Get-Folder {
+    param ()
+    [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
 
-Function Get-Component($src, $destPath) {
-    if (-Not $(Test-Path $destPath)) {
-        New-Item $destPath -ItemType Directory
+    [System.Reflection.BindingFlags] $DialogFlags = [System.Reflection.BindingFlags]::Instance + [System.Reflection.BindingFlags]::Public + [System.Reflection.BindingFlags]::NonPublic;
+    [string] $DialogFoldersFilter = "Folders|\n";
+    [System.UInt32] $AdviseType = 0;
+    [System.Reflection.Assembly] $AssemblyOfWinForm = [System.Windows.Forms.FileDialog].Assembly
+    [System.Type] $FileDialogType = $AssemblyOfWinForm.GetType("System.Windows.Forms.FileDialogNative+IFileDialog")
+    [System.Reflection.MethodInfo] $SystemAdviseMethodInfo = $FileDialogType.GetMethod("Advise")
+    [System.Reflection.MethodInfo] $SystemCeateVistaDialogMethodInfo = [System.Windows.Forms.OpenFileDialog].GetMethod("CreateVistaDialog", $DialogFlags)
+    [System.Reflection.MethodInfo] $SystemGetOptionsMethodInfo = [System.Windows.Forms.FileDialog].GetMethod("GetOptions", $DialogFlags)
+    [System.Reflection.MethodInfo] $SystemOnBeforeVistaDialogMethodInfo = [System.Windows.Forms.OpenFileDialog].GetMethod("OnBeforeVistaDialog", $DialogFlags)
+    [System.Type] $SystemOsPickFolders = $AssemblyOfWinForm.GetType("System.Windows.Forms.FileDialogNative+FOS")
+    [System.UInt32] $SystemOsPickFoldersBitFlag = [System.UInt32]$SystemOsPickFolders.GetField("FOS_PICKFOLDERS").GetValue($null)
+    [System.Reflection.MethodInfo] $SystemSetOptionsMethodInfo = $FileDialogType.GetMethod("SetOptions", $DialogFlags)
+    [System.Reflection.MethodInfo] $SystemShowMethodInfo = $FileDialogType.GetMethod("Show")
+    [System.Reflection.MethodInfo] $SystemUnAdviseMethodInfo = $FileDialogType.GetMethod("Unadvise")
+    [System.Type] $VistaDialogEvents = $AssemblyOfWinForm.GetType("System.Windows.Forms.FileDialog+VistaDialogEvents")
+    [System.Object[]] $parameters = , [System.Windows.Forms.FileDialog]
+    [System.Reflection.ConstructorInfo] $VistaDialogEventsConstructorInfo = $VistaDialogEvents.GetConstructor($DialogFlags, $null, $parameters, $null)
+
+    [System.Windows.Forms.OpenFileDialog] $openFileDialog = New-Object -TypeName System.Windows.Forms.OpenFileDialog
+    $openFileDialog.AddExtension = $false
+    $openFileDialog.CheckFileExists = $false
+    $openFileDialog.DereferenceLinks = $true
+    $openFileDialog.Filter = $DialogFoldersFilter
+    $openFileDialog.InitialDirectory = ""
+    $openFileDialog.Multiselect = $false
+    $openFileDialog.Title = "Select a location where to install yaul"
+
+    [System.Object[]] $empty = @()
+    [System.Object] $fileDialog = $SystemCeateVistaDialogMethodInfo.Invoke($openFileDialog, $empty)
+    [System.Object[]] $fileDialogParam = , $fileDialog
+    $SystemOnBeforeVistaDialogMethodInfo.Invoke($openFileDialog, $fileDialogParam) | Out-Null
+    [System.UInt32] $flag = [System.UInt32]$SystemGetOptionsMethodInfo.Invoke($openFileDialog, $empty) + $SystemOsPickFoldersBitFlag;
+    [System.Object[]] $flags = , $flag
+    $SystemSetOptionsMethodInfo.Invoke($fileDialog, $flags) | Out-Null
+    [System.Object[]] $advParam = , $openFileDialog
+    [System.Object[]] $adviseParametersWithOutputConnectionToken = $VistaDialogEventsConstructorInfo.Invoke($advParam), $AdviseType
+    $SystemAdviseMethodInfo.Invoke($fileDialog, $adviseParametersWithOutputConnectionToken) | Out-Null
+
+    try {
+        [System.Object[]] $handle = , [System.IntPtr].Zero
+        [int] $dialogResult = [int]$SystemShowMethodInfo.Invoke($fileDialog, $handle);
+
+        if ($dialogResult -eq 0) {
+            $result = $openFileDialog.FileName.Trim()
+        }
+        else {
+            exit
+        }
     }
-    if ($src.Contains("http")) { 
-        $src = DownloadFile($src)
-    }else{
-        $fileName = $src.Substring($src.LastIndexOf("\") + 1)
-        Copy-Item -Force -Path $src -Destination $tmpPath
-        $src = "$tmpPath\$fileName"
+    finally {
+        [System.Object[]] $advFinParam = , $adviseParametersWithOutputConnectionToken[1]
+        $SystemUnAdviseMethodInfo.Invoke($fileDialog, $advFinParam) | Out-Null
     }
-    if ($src.Contains(".tar")) {
-        7za.exe x $src -aoa -o"$tmpPath"
-        $src= $src.Substring(0, $src.IndexOf(".tar")+4)
-    }
-    7za.exe x $src -aoa -o"$destPath"
+
+    return $result
 }
 
 Add-Type -AssemblyName System.Windows.Forms
@@ -104,62 +132,106 @@ function Get-Folder {
     return $result
 }
 
-$destinationFolder = Get-Folder
+$installationPath = Get-Folder
 
-$destinationFolder += "\yaul"
+$installationPath += "\yaul"
 
-while ($(Test-Path $destinationFolder)) {
+while ($(Test-Path $installationPath)) {
     [System.Windows.Forms.MessageBox]::Show('Chosen location already has a previous installation plase chose a different folder.', 'ERROR')
-    $destinationFolder = Get-Folder
-    $destinationFolder += "\yaul"
+    $installationPath = Get-Folder
+    $installationPath += "\yaul"
 }
 
-if (-Not $(Test-Path $destinationFolder)) {
-    New-Item $destinationFolder -ItemType Directory
+if (-Not $(Test-Path $installationPath)) {
+    New-Item $installationPath -ItemType Directory
 }
 
-Get-Component "msys64.tar.xz" "$destinationFolder"
+$settings = Get-Content -Raw -Path "settings.json" | ConvertFrom-Json
 
-Get-Component "sh2eb-elf.tar.xz" "$destinationFolder"
+$installerDependencies = $settings | Select-Object -ExpandProperty InstallerDependencies
 
-# Official toolchain link, commented because it is not working at the moment
-# Get-Component "http://files.yaul.org/mingw-w64/yaul-tool-chain-mingw-w64-r140.14f6c2c.tar.xz" "$destinationFolder"
+$7zipPackage = $installerDependencies | Select-Object -ExpandProperty 7zipPackage
 
-Get-Component "https://mednafen.github.io/releases/files/mednafen-1.29.0-win64.zip" "$destinationFolder\emulators\mednafen"
+if (-Not $(Test-Path "7za.exe")) {
+    $7zipPath = "$tmpPath\7-Zip"
+    if (-Not $(Test-Path $7zipPath)) {
+        New-Item $7zipPath -ItemType Directory
+    }
+    $fileName = $7zipPackage.Substring($7zipPackage.LastIndexOf("/") + 1)
+    $tempPackage = "$tmpPath\$fileName"
+    Invoke-WebRequest -URI $7zipPackage -OutFile $tempPackage
+    Expand-Archive -Force $tempPackage -DestinationPath $7zipPath
+    $Env:PATH += ";$7zipPath"
+}
 
-Get-Component "https://download.tuxfamily.org/yabause/releases/0.9.15/yabause-0.9.15-win64.zip" "$destinationFolder\emulators"
+$Packages = $settings | Select-Object -ExpandProperty Packages
+$Packages
+$Packages | Select-Object -Property Destination, Source | ForEach-Object {
+    $Source = $_.Source
+    
 
-Get-ChildItem -Filter "yabause-*" -Path "$destinationFolder\emulators"  | Rename-Item -NewName "yabause"
+    if (-Not $(Test-Path $tmpPath)) {
+        New-Item $tmpPath -ItemType Directory
+    }
+    if ($source.Contains("http")) { 
+        $fileName = $source.Substring($source.LastIndexOf("/") + 1)
+        $tempPackagePath = "$tmpPath\$fileName"
+        Invoke-WebRequest -URI $source -OutFile $tempPackagePath
+    }
+    else {
+        $fileName = $source.Substring($source.LastIndexOf("\") + 1)
+        Copy-Item -Force -Path $source -Destination $tmpPath
+        $tempPackagePath = "$tmpPath\$fileName"
+    }
 
-Get-Component "https://github.com/ijacquez/libyaul/archive/47e2d38f22ada0de55ae8e1ffedfd572ec9090c9.zip" "$destinationFolder"
+    if ($tempPackagePath.Contains(".tar")) {
+        7za.exe x $tempPackagePath -aoa -o"$tmpPath"
+        $tempPackagePath = $tempPackagePath.Substring(0, $tempPackagePath.IndexOf(".tar") + 4)
+    }
 
-Get-ChildItem -Filter "libyaul-*" -Path $destinationFolder  | Rename-Item -NewName "libyaul"
+    $tempExtractPath = $tempPackagePath + "_dir"
+    Remove-Item -Recurse -Force -Path $tempExtractPath
+    if (-Not $(Test-Path $tempExtractPath)) {
+        New-Item $tempExtractPath -ItemType Directory
+    }
 
-Get-Component "https://github.com/ijacquez/libyaul-examples/archive/fa0cf46d7ea77d1d40246c0465e26f89e3bd0851.zip" "$destinationFolder"
+    7za.exe x $tempPackagePath -aoa -o"$tempExtractPath"
 
-Get-ChildItem -Filter "libyaul-examples-*" -Path $destinationFolder  | Rename-Item -NewName "libyaul-examples"
+    $DestinationDir = $InstallationPath + "\" + $_.Destination
+    if (-Not $(Test-Path $DestinationDir)) {
+        New-Item $DestinationDir -ItemType Directory
+    }
+    if ((Get-ChildItem $tempExtractPath | Measure-Object).Count -gt 1) {
+        Copy-Item -Recurse -Path "$tempExtractPath/*" -Destination $DestinationDir
+    }
+    else {
+        Copy-Item -Recurse -Path "$tempExtractPath/*/*" -Destination $DestinationDir
+    }
 
+    Remove-Item -Recurse -Force -Path $tempExtractPath
 
-[System.Environment]::SetEnvironmentVariable('YAUL_ROOT', $destinationFolder, [System.EnvironmentVariableTarget]::User)
+}
 
-foreach ($example in $(Get-ChildItem -Directory -Path "$destinationFolder/libyaul-examples")) { 
+[System.Environment]::SetEnvironmentVariable('YAUL_ROOT', $InstallationPath, [System.EnvironmentVariableTarget]::User)
+
+foreach ($example in $(Get-ChildItem -Directory -Path "$InstallationPath/libyaul-examples")) { 
     Copy-Item -Recurse -Path "project_template/*" -Destination $example.FullName
 }
 
-Copy-Item -Force -Recurse -Path "$currentPath/libyaul-patch/*" -Destination "$destinationFolder\libyaul"
+Copy-Item -Force -Recurse -Path "$currentPath/libyaul-patch/*" -Destination "$InstallationPath\libyaul"
 
-$Env:PATH += ";$destinationFolder/msys64/usr/bin"
-$Env:PATH += ";$destinationFolder/msys64/mingw64/bin"
+$Env:PATH += ";$InstallationPath/msys64/usr/bin"
+$Env:PATH += ";$InstallationPath/msys64/mingw64/bin"
 
-# To fix intelisense on vscode
-Copy-Item -Force "$destinationFolder\msys64\mingw64\bin\libwinpthread-1.dll" -Destination "$destinationFolder\sh2eb-elf\bin"
+To fix intelisense on vscode
+Copy-Item -Force "$InstallationPath\msys64\mingw64\bin\libwinpthread-1.dll" -Destination "$InstallationPath\sh2eb-elf\bin"
 
-$destinationFolder = $destinationFolder.Replace('\', '/')
+$InstallationPath = $InstallationPath.Replace('\', '/')
 
-$Env:YAUL_INSTALL_ROOT = "$destinationFolder/sh2eb-elf"
+$Env:YAUL_INSTALL_ROOT = "$InstallationPath/sh2eb-elf"
 $Env:YAUL_ARCH_SH_PREFIX = "sh2eb-elf"
 $Env:YAUL_ARCH_M68K_PREFIX = "m68keb-elf"
-$Env:YAUL_BUILD_ROOT = "$destinationFolder/libyaul"
+$Env:YAUL_BUILD_ROOT = "$InstallationPath/libyaul"
 $Env:YAUL_BUILD = "build"
 $Env:YAUL_CDB = "0"
 $Env:YAUL_OPTION_DEV_CARTRIDGE = "0"
@@ -168,9 +240,9 @@ $Env:YAUL_OPTION_SPIN_ON_ABORT = "1"
 $Env:YAUL_OPTION_BUILD_GDB = "0"
 $Env:YAUL_OPTION_BUILD_ASSERT = "1"
 $Env:SILENT = "1"
-$Env:MAKE_ISO_XORRISO = "$destinationFolder/msys64/usr/bin/xorrisofs"
+$Env:MAKE_ISO_XORRISO = "$InstallationPath/msys64/usr/bin/xorrisofs"
 
-Set-Location "$destinationFolder\libyaul"
+Set-Location "$InstallationPath\libyaul"
 
 make install
 

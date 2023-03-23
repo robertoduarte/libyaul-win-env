@@ -1,0 +1,31 @@
+{
+    "InstallerDependencies": {
+        "7zipPackage": "http://www.7-zip.org/a/7za920.zip"
+    },
+    "Packages": [
+        {
+            "Destination": "msys64",
+            "source": "msys64.tar.xz"
+        },
+        {
+            "Destination": "sh2eb-elf",
+            "source": "sh2eb-elf.tar.xz"
+        },
+        {
+            "Destination": "emulators/yabause",
+            "source": "https://download.tuxfamily.org/yabause/releases/0.9.15/yabause-0.9.15-win64.zip"
+        },
+        {
+            "Destination": "emulators/mednafen",
+            "source": "https://mednafen.github.io/releases/files/mednafen-1.29.0-win64.zip"
+        },
+        {
+            "Destination": "libyaul",
+            "source": "https://github.com/ijacquez/libyaul/archive/47e2d38f22ada0de55ae8e1ffedfd572ec9090c9.zip"
+        },
+        {
+            "Destination": "libyaul-examples",
+            "source": "https://github.com/ijacquez/libyaul-examples/archive/fa0cf46d7ea77d1d40246c0465e26f89e3bd0851.zip"
+        }
+    ]
+}
